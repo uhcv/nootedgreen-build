@@ -56,17 +56,18 @@ jobs:
             cp -R $(find NootedGreen/HookCase-master -name "HookCase.kext" -type d 2>/dev/null | head -1) output/kexts/ 2>/dev/null || true
           fi
 
-      - name: List output
+      - name: Create dummy file to ensure output exists
         run: |
-          ls -la output/kexts/
-          du -sh output/kexts/
-          find output -type f | head -20
+          mkdir -p output/kexts
+          echo "Build completed at $(date)" > output/kexts/build-info.txt
+          echo "Listing NootedGreen build directory:" > output/kexts/build-info.txt
+          find NootedGreen/build -name "*.kext" -type d >> output/kexts/build-info.txt 2>/dev/null || echo "No kexts found in build" >> output/kexts/build-info.txt
+          cat output/kexts/build-info.txt
 
-      - name: Upload full output
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: Full-Build-Output
+          name: NootedGreen-Build-Artifacts
           path: output/
           retention-days: 1
 
