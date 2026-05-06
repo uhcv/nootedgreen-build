@@ -18,12 +18,15 @@ jobs:
       - name: Build NootedGreen
         working-directory: ./NootedGreen
         run: |
-          xcodebuild -project NootedGreen.xcodeproj -scheme NootedGreen -configuration Release build 2>&1 | tail -30
+          xcodebuild -project NootedGreen.xcodeproj -scheme NootedGreen -configuration Release -derivedDataPath ./DerivedData build 2>&1 | tail -30
+          ls -la DerivedData/Build/Products/Release/ 2>/dev/null || echo "Checking alternative..."
+          find DerivedData -name "*.kext" -type d 2>/dev/null | head -5
 
       - name: Build HookCase
         working-directory: ./NootedGreen/HookCase-master
         run: |
-          xcodebuild -project HookCase.xcodeproj -scheme HookCase -configuration Release build 2>&1 | tail -30
+          xcodebuild -project HookCase.xcodeproj -scheme HookCase -configuration Release -derivedDataPath ./DerivedData build 2>&1 | tail -30
+          find DerivedData -name "*.kext" -type d 2>/dev/null | head -5
 
       - name: Create output directory
         run: mkdir -p output/kexts
@@ -41,19 +44,26 @@ jobs:
       - name: Copy NootedGreen.kext
         run: |
           mkdir -p output/kexts
-          if [ -d "NootedGreen/build/Release/NootedGreen.kext" ]; then
-            cp -R NootedGreen/build/Release/NootedGreen.kext output/kexts/
+          # Check DerivedData location
+          NG_DIR=$(find NootedGreen/DerivedData -name "NootedGreen.kext" -type d 2>/dev/null | head -1)
+          if [ -n "$NG_DIR" ]; then
+            cp -R "$NG_DIR" output/kexts/
+            echo "Copied NootedGreen.kext from DerivedData"
           else
-            # Try alternative locations
-            cp -R $(find NootedGreen -name "NootedGreen.kext" -type d 2>/dev/null | head -1) output/kexts/ 2>/dev/null || true
+            # Try alternative
+            NG_DIR=$(find NootedGreen -name "NootedGreen.kext" -type d 2>/dev/null | head -1)
+            if [ -n "$NG_DIR" ]; then
+              cp -R "$NG_DIR" output/kexts/
+              echo "Copied NootedGreen.kext"
+            fi
           fi
 
       - name: Copy HookCase.kext
         run: |
-          if [ -d "NootedGreen/HookCase-master/build/Release/HookCase.kext" ]; then
-            cp -R NootedGreen/HookCase-master/build/Release/HookCase.kext output/kexts/
-          else
-            cp -R $(find NootedGreen/HookCase-master -name "HookCase.kext" -type d 2>/dev/null | head -1) output/kexts/ 2>/dev/null || true
+          HC_DIR=$(find NootedGreen/HookCase-master/DerivedData -name "HookCase.kext" -type d 2>/dev/null | head -1)
+          if [ -n "$HC_DIR" ]; then
+            cp -R "$HC_DIR" output/kexts/
+            echo "Copied HookCase.kext from DerivedData"
           fi
 
       - name: Create dummy file to ensure output exists
