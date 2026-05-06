@@ -1,0 +1,57 @@
+name: Build NootedGreen
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-nootedgreen:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout NootedGreen
+        uses: actions/checkout@v4
+        with:
+          repository: sgiammori/NootedGreen
+          path: NootedGreen
+          fetch-depth: 1
+
+      - name: Build NootedGreen
+        working-directory: ./NootedGreen
+        run: |
+          xcodebuild -project NootedGreen.xcodeproj -scheme NootedGreen -configuration Release build 2>&1 | tail -30
+
+      - name: Build HookCase
+        working-directory: ./NootedGreen/HookCase-master
+        run: |
+          xcodebuild -project HookCase.xcodeproj -scheme HookCase -configuration Release build 2>&1 | tail -30
+
+      - name: Create output directory
+        run: mkdir -p output/kexts
+
+      - name: Find and copy NootedGreen.kext
+        run: |
+          NG_DIR=$(find NootedGreen -name "NootedGreen.kext" -type d 2>/dev/null | head -1)
+          if [ -n "$NG_DIR" ]; then
+            cp -R "$NG_DIR" output/kexts/
+            echo "Copied NootedGreen.kext"
+          else
+            ls -la NootedGreen/build/ 2>/dev/null || ls -la build/ 2>/dev/null || echo "Build not found"
+          fi
+
+      - name: Find and copy HookCase.kext
+        run: |
+          HC_DIR=$(find NootedGreen/HookCase-master -name "HookCase.kext" -type d 2>/dev/null | head -1)
+          if [ -n "$HC_DIR" ]; then
+            cp -R "$HC_DIR" output/kexts/
+            echo "Copied HookCase.kext"
+          fi
+
+      - name: List output
+        run: ls -la output/kexts/ || echo "No output"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: NootedGreen-kexts
+          path: output/kexts/
+          retention-days: 1
