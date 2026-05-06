@@ -28,26 +28,38 @@ jobs:
       - name: Create output directory
         run: mkdir -p output/kexts
 
-      - name: Find and copy NootedGreen.kext
+      - name: Debug build output
         run: |
-          NG_DIR=$(find NootedGreen -name "NootedGreen.kext" -type d 2>/dev/null | head -1)
-          if [ -n "$NG_DIR" ]; then
-            cp -R "$NG_DIR" output/kexts/
-            echo "Copied NootedGreen.kext"
+          echo "=== NootedGreen build dir ==="
+          find NootedGreen -name "*.kext" -type d 2>/dev/null
+          ls -la NootedGreen/build/Release/ 2>/dev/null || echo "No Release dir"
+          
+          echo "=== HookCase build dir ==="
+          find NootedGreen/HookCase-master -name "*.kext" -type d 2>/dev/null
+          ls -la NootedGreen/HookCase-master/build/Release/ 2>/dev/null || echo "No Release dir"
+
+      - name: Copy NootedGreen.kext
+        run: |
+          mkdir -p output/kexts
+          if [ -d "NootedGreen/build/Release/NootedGreen.kext" ]; then
+            cp -R NootedGreen/build/Release/NootedGreen.kext output/kexts/
           else
-            ls -la NootedGreen/build/ 2>/dev/null || ls -la build/ 2>/dev/null || echo "Build not found"
+            # Try alternative locations
+            cp -R $(find NootedGreen -name "NootedGreen.kext" -type d 2>/dev/null | head -1) output/kexts/ 2>/dev/null || true
           fi
 
-      - name: Find and copy HookCase.kext
+      - name: Copy HookCase.kext
         run: |
-          HC_DIR=$(find NootedGreen/HookCase-master -name "HookCase.kext" -type d 2>/dev/null | head -1)
-          if [ -n "$HC_DIR" ]; then
-            cp -R "$HC_DIR" output/kexts/
-            echo "Copied HookCase.kext"
+          if [ -d "NootedGreen/HookCase-master/build/Release/HookCase.kext" ]; then
+            cp -R NootedGreen/HookCase-master/build/Release/HookCase.kext output/kexts/
+          else
+            cp -R $(find NootedGreen/HookCase-master -name "HookCase.kext" -type d 2>/dev/null | head -1) output/kexts/ 2>/dev/null || true
           fi
 
       - name: List output
-        run: ls -la output/kexts/ || echo "No output"
+        run: |
+          ls -la output/kexts/
+          du -sh output/kexts/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
